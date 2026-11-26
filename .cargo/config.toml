@@ -1,0 +1,4 @@
+# Enlaza el runtime de C de forma estática en Windows: así prueba_q22.exe funciona en equipos sin
+# el Visual C++ Redistributable instalado. Solo afecta a lo que se compila dentro de este repo.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
