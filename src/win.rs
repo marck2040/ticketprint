@@ -1,7 +1,7 @@
 //! Todo lo que habla con Windows: impresoras, DEVMODE, DC de GDI y trabajos RAW.
 
 use crate::error::{Error, Result};
-use crate::layout::{layout, DrawOp, FontKey, Layout, Measurer};
+use crate::layout::{layout, DrawOp, FontKey, Layout, Measurer, WidthLimit};
 use crate::{EscPosOptions, HeightStrategy, PaperForm, PrintOptions, PrintReport, PrinterInfo, Ticket};
 use std::collections::HashMap;
 use std::ops::Range;
@@ -315,7 +315,7 @@ impl Measurer for Dc {
     }
 }
 
-fn draw(dc: &mut Dc, layout: &Layout, pages: &[Range<usize>], job: &str) -> Result<()> {
+fn draw(dc: &mut Dc, layout: &Layout, pages: &[Range<usize>], job: &str, dx: i32) -> Result<()> {
     let job = wide(job);
     let di = DOCINFOW {
         cbSize: std::mem::size_of::<DOCINFOW>() as i32,
@@ -345,11 +345,11 @@ fn draw(dc: &mut Dc, layout: &Layout, pages: &[Range<usize>], job: &str) -> Resu
                     DrawOp::Text { x, y, text, font } => {
                         dc.select(font);
                         unsafe {
-                            let _ = TextOutW(dc.hdc, *x, y0 + y, &text16(text));
+                            let _ = TextOutW(dc.hdc, dx + *x, y0 + y, &text16(text));
                         }
                     }
                     DrawOp::Rect { x, y, w, h } => unsafe {
-                        let _ = PatBlt(dc.hdc, *x, y0 + y, *w, *h, BLACKNESS);
+                        let _ = PatBlt(dc.hdc, dx + *x, y0 + y, *w, *h, BLACKNESS);
                     },
                 }
             }
@@ -448,14 +448,24 @@ pub fn print_gdi(printer: &str, ticket: &Ticket, opt: &PrintOptions) -> Result<P
     let base = devmode_default(&h, &name)?;
 
     // 1. Medir con la fuente y el DPI reales. El largo del papel no cambia ni el DPI ni el ancho.
-    let lay = {
+    let mut notes = Vec::new();
+    let (lay, driver_width) = {
         let mut ic = Dc::info(&name, &base)?;
-        layout(ticket, &mut ic)?
+        let driver_width = ic.printable_width();
+        let head_mm = opt.printable_width_mm.unwrap_or((ticket.paper_width_mm - 8.0).max(10.0));
+        let head_px = mm_to_px(head_mm, ic.dpi().0);
+        if head_px < driver_width {
+            notes.push(format!(
+                "ancho: el driver reporta {driver_width} puntos; se usan {head_px} ({head_mm} mm) para no salirse del cabezal"
+            ));
+        }
+        let mut m = WidthLimit::new(&mut ic, head_px);
+        (layout(ticket, &mut m)?, driver_width)
     };
+    let dx = mm_to_px(opt.offset_x_mm, lay.dpi_x);
     let margin = mm_to_px(opt.bottom_margin_mm, lay.dpi_y);
     let needed_px = lay.height + margin;
     let needed_tenths = ((needed_px as f64) * 254.0 / lay.dpi_y as f64).ceil() as i32;
-    let mut notes = Vec::new();
 
     // 2. Elegir el papel según la estrategia.
     let mut chosen: Option<(HeightStrategy, Dc)> = None;
@@ -492,11 +502,12 @@ pub fn print_gdi(printer: &str, ticket: &Ticket, opt: &PrintOptions) -> Result<P
     if lay.blocks.iter().any(|b| b.height > page_h) {
         notes.push("hay un bloque más alto que la página; saldrá recortado".into());
     }
-    draw(&mut dc, &lay, &pages, &opt.job_name)?;
+    draw(&mut dc, &lay, &pages, &opt.job_name, dx)?;
 
     Ok(PrintReport {
         dpi: (lay.dpi_x, lay.dpi_y),
         width_px: lay.width,
+        driver_width_px: driver_width,
         content_height_px: lay.height,
         content_height_mm: lay.height_tenths_mm() as f32 / 10.0,
         strategy: used,

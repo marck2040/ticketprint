@@ -53,6 +53,12 @@ pub struct PrintOptions {
     pub strategy: HeightStrategy,
     /// Papel en blanco que se suma al final antes del corte, en mm.
     pub bottom_margin_mm: f32,
+    /// Ancho que realmente imprime el cabezal, en mm. Muchos drivers de 80 mm reportan un área
+    /// imprimible más ancha que el cabezal (72 mm) y lo que cae fuera se pierde. Con `None` se usa el
+    /// ancho del papel del ticket menos 8 mm (72 mm en 80 mm, 50 mm en 58 mm), sin pasar del driver.
+    pub printable_width_mm: Option<f32>,
+    /// Corrimiento horizontal de todo el ticket, en mm, para centrarlo si el driver lo desplaza.
+    pub offset_x_mm: f32,
 }
 
 impl Default for PrintOptions {
@@ -61,6 +67,8 @@ impl Default for PrintOptions {
             job_name: "Ticket".into(),
             strategy: HeightStrategy::Auto,
             bottom_margin_mm: 2.0,
+            printable_width_mm: None,
+            offset_x_mm: 0.0,
         }
     }
 }
@@ -74,13 +82,24 @@ impl PrintOptions {
         self.strategy = s;
         self
     }
+    pub fn printable_width_mm(mut self, mm: f32) -> Self {
+        self.printable_width_mm = Some(mm);
+        self
+    }
+    pub fn offset_x_mm(mut self, mm: f32) -> Self {
+        self.offset_x_mm = mm;
+        self
+    }
 }
 
 /// Qué pasó al imprimir. Sirve para diagnosticar drivers.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PrintReport {
     pub dpi: (i32, i32),
+    /// Ancho usado para maquetar, en puntos.
     pub width_px: i32,
+    /// Ancho imprimible que reporta el driver (`HORZRES`), en puntos.
+    pub driver_width_px: i32,
     pub content_height_px: i32,
     pub content_height_mm: f32,
     pub strategy: HeightStrategy,

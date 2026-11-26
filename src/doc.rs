@@ -16,7 +16,8 @@ pub enum Align {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Style {
-    /// Tamaño en puntos tipográficos (1 pt = 1/72 de pulgada).
+    /// Tamaño en puntos tipográficos (1 pt = 1/72 de pulgada). Por defecto 8 pt: con Consolas da unas
+    /// 47 columnas en 72 mm, casi las 48 de la fuente A de ESC/POS.
     pub size_pt: f32,
     pub bold: bool,
     pub align: Align,
@@ -27,7 +28,7 @@ pub struct Style {
 impl Default for Style {
     fn default() -> Self {
         Style {
-            size_pt: 9.0,
+            size_pt: 8.0,
             bold: false,
             align: Align::Left,
             font: None,

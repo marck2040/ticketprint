@@ -3,7 +3,7 @@
 //! ```text
 //! cargo run --example prueba_q22 -- listar
 //! cargo run --example prueba_q22 -- info  "POSPrinter POS-80C"
-//! cargo run --example prueba_q22 -- gdi   "POSPrinter POS-80C" [auto|dinamico|papel-largo|paginar] [productos]
+//! cargo run --example prueba_q22 -- gdi   "POSPrinter POS-80C" [auto|dinamico|papel-largo|paginar] [productos] [ancho_mm] [desplazamiento_mm]
 //! cargo run --example prueba_q22 -- raw   "POSPrinter POS-80C" [productos]
 //! cargo run --example prueba_q22 -- todo  "POSPrinter POS-80C"
 //! ```
@@ -73,11 +73,15 @@ fn info(impresora: &str) -> ticketprint::Result<()> {
     Ok(())
 }
 
-fn gdi(impresora: &str, est: &str, productos: usize) -> ticketprint::Result<()> {
+fn gdi(impresora: &str, est: &str, productos: usize, ancho_mm: Option<f32>, dx_mm: f32) -> ticketprint::Result<()> {
     let t = ticket_largo(&format!("GDI, estrategia: {est}"), productos);
-    let opt = PrintOptions::default()
+    let mut opt = PrintOptions::default()
         .job_name(format!("Prueba GDI {est}"))
-        .strategy(estrategia(est));
+        .strategy(estrategia(est))
+        .offset_x_mm(dx_mm);
+    if let Some(a) = ancho_mm {
+        opt = opt.printable_width_mm(a);
+    }
     let r = ticketprint::print(impresora, &t, &opt)?;
     println!("GDI {est}: {r:#?}");
     Ok(())
@@ -109,20 +113,22 @@ fn main() {
         "gdi" => {
             let est = args.get(2).map(String::as_str).unwrap_or("auto");
             let n = args.get(3).and_then(|s| s.parse().ok()).unwrap_or(110);
-            gdi(&impresora, est, n)
+            let ancho = args.get(4).and_then(|s| s.parse().ok());
+            let dx = args.get(5).and_then(|s| s.parse().ok()).unwrap_or(0.0);
+            gdi(&impresora, est, n, ancho, dx)
         }
         "raw" => raw(&impresora, args.get(2).and_then(|s| s.parse().ok()).unwrap_or(110)),
         "todo" => (|| {
             info(&impresora)?;
             for est in ["dinamico", "papel-largo", "paginar"] {
-                if let Err(e) = gdi(&impresora, est, 110) {
+                if let Err(e) = gdi(&impresora, est, 110, None, 0.0) {
                     println!("GDI {est}: ERROR {e}");
                 }
             }
             raw(&impresora, 110)
         })(),
         _ => {
-            eprintln!("Uso: prueba_q22 listar | info <impresora> | gdi <impresora> [auto|dinamico|papel-largo|paginar] [productos] | raw <impresora> [productos] | todo <impresora>");
+            eprintln!("Uso: prueba_q22 listar | info <impresora> | gdi <impresora> [auto|dinamico|papel-largo|paginar] [productos] [ancho_mm] [desplazamiento_mm] | raw <impresora> [productos] | todo <impresora>");
             std::process::exit(2);
         }
     };

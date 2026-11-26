@@ -104,6 +104,35 @@ pub trait Measurer {
     fn line_height(&mut self, font: &FontKey) -> i32;
 }
 
+/// Limita el ancho imprimible que reporta otro medidor. Se usa cuando el driver dice tener más ancho
+/// que el que imprime el cabezal.
+pub struct WidthLimit<'a> {
+    inner: &'a mut dyn Measurer,
+    width: i32,
+}
+
+impl<'a> WidthLimit<'a> {
+    pub fn new(inner: &'a mut dyn Measurer, max_width: i32) -> Self {
+        let width = inner.printable_width().min(max_width).max(1);
+        WidthLimit { inner, width }
+    }
+}
+
+impl Measurer for WidthLimit<'_> {
+    fn dpi(&self) -> (i32, i32) {
+        self.inner.dpi()
+    }
+    fn printable_width(&self) -> i32 {
+        self.width
+    }
+    fn text_width(&mut self, font: &FontKey, text: &str) -> i32 {
+        self.inner.text_width(font, text)
+    }
+    fn line_height(&mut self, font: &FontKey) -> i32 {
+        self.inner.line_height(font)
+    }
+}
+
 fn mm_to_px(mm: f32, dpi: i32) -> i32 {
     (mm as f64 / 25.4 * dpi as f64).round() as i32
 }
@@ -394,6 +423,23 @@ pub(crate) mod tests {
             assert!(alto <= page || p.len() == 1);
         }
         assert_eq!(next, l.blocks.len());
+    }
+
+    #[test]
+    fn el_limite_de_ancho_mete_el_precio_dentro_del_cabezal() {
+        let t = Ticket::new().row([Col::left("Producto", 0.7), Col::right("$110.10", 0.3)]);
+        let mut fake = FakeThermal;
+        let mut m = WidthLimit::new(&mut fake, 500);
+        let l = layout(&t, &mut m).unwrap();
+        assert_eq!(l.width, 500);
+        let mut fake = FakeThermal;
+        for op in &l.blocks[0].ops {
+            if let DrawOp::Text { x, text, font, .. } = op {
+                assert!(x + fake.text_width(font, text) <= 500, "se sale: {text}");
+            }
+        }
+        // Nunca agranda el ancho del driver.
+        assert_eq!(WidthLimit::new(&mut fake, 9999).printable_width(), 576);
     }
 
     #[test]
