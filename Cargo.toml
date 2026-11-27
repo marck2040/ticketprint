@@ -2,11 +2,20 @@
 name = "ticketprint"
 version = "0.1.0"
 edition = "2021"
-description = "Impresión de tickets en Windows dibujando directo con GDI (y ESC/POS raw opcional), sin PDF ni librerías de impresión de terceros."
+rust-version = "1.82"
+authors = ["Mario Perla"]
+description = "Print receipts (80/58 mm thermal tickets) on Windows by drawing directly with GDI, with dynamic page height so long tickets are never cut. Optional ESC/POS raw backend. No PDF, no third-party printing libraries."
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/marck2040/ticketprint"
+documentation = "https://docs.rs/ticketprint"
 readme = "README.md"
-keywords = ["printing", "gdi", "ticket", "escpos", "tauri"]
-categories = ["os::windows-apis"]
+keywords = ["printing", "receipt", "gdi", "escpos", "thermal"]
+categories = ["os::windows-apis", "hardware-support"]
+include = ["src/**/*", "examples/**/*", "Cargo.toml", "README.md", "CHANGELOG.md", "LICENSE-MIT", "LICENSE-APACHE"]
+
+[package.metadata.docs.rs]
+default-target = "x86_64-pc-windows-msvc"
+targets = ["x86_64-pc-windows-msvc"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

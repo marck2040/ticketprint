@@ -16,12 +16,14 @@ pub enum CodePage {
     Pc850,
 }
 
+/// Opciones del backend ESC/POS.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EscPosOptions {
     /// Caracteres por línea con la fuente A. 48 en papel de 80 mm, 32 en 58 mm.
     pub cols: usize,
     /// Puntos por mm (8 a 203 DPI).
     pub dots_per_mm: f32,
+    /// Página de códigos para convertir el texto.
     pub codepage: CodePage,
     /// Valor de `n` en `ESC t n`.
     pub codepage_cmd: u8,
