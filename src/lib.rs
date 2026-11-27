@@ -20,6 +20,8 @@
 //! # Ok::<(), ticketprint::Error>(())
 //! ```
 
+#![warn(missing_docs)]
+
 mod doc;
 mod error;
 pub mod escpos;
@@ -47,9 +49,12 @@ pub enum HeightStrategy {
     Paginate,
 }
 
+/// Opciones de impresión GDI. Se construyen con `PrintOptions::default()` y los métodos encadenados.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PrintOptions {
+    /// Nombre del trabajo en la cola de impresión de Windows.
     pub job_name: String,
+    /// Cómo se decide el alto de la página.
     pub strategy: HeightStrategy,
     /// Papel en blanco que se suma al final antes del corte, en mm.
     pub bottom_margin_mm: f32,
@@ -74,18 +79,22 @@ impl Default for PrintOptions {
 }
 
 impl PrintOptions {
+    /// Cambia el nombre del trabajo.
     pub fn job_name(mut self, name: impl Into<String>) -> Self {
         self.job_name = name.into();
         self
     }
+    /// Cambia la estrategia de alto.
     pub fn strategy(mut self, s: HeightStrategy) -> Self {
         self.strategy = s;
         self
     }
+    /// Fija el ancho que imprime el cabezal.
     pub fn printable_width_mm(mut self, mm: f32) -> Self {
         self.printable_width_mm = Some(mm);
         self
     }
+    /// Corre el ticket a la derecha (positivo) o a la izquierda (negativo).
     pub fn offset_x_mm(mut self, mm: f32) -> Self {
         self.offset_x_mm = mm;
         self
@@ -95,32 +104,45 @@ impl PrintOptions {
 /// Qué pasó al imprimir. Sirve para diagnosticar drivers.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PrintReport {
+    /// Resolución del dispositivo (x, y).
     pub dpi: (i32, i32),
     /// Ancho usado para maquetar, en puntos.
     pub width_px: i32,
     /// Ancho imprimible que reporta el driver (`HORZRES`), en puntos.
     pub driver_width_px: i32,
+    /// Alto del contenido en puntos.
     pub content_height_px: i32,
+    /// Alto del contenido en mm.
     pub content_height_mm: f32,
+    /// Estrategia de alto que terminó usándose.
     pub strategy: HeightStrategy,
+    /// Alto de cada página que aceptó el driver, en puntos.
     pub page_height_px: i32,
+    /// Páginas enviadas (1 si el alto dinámico funcionó).
     pub pages: usize,
+    /// Detalle de lo que pidió el crate y devolvió el driver.
     pub notes: Vec<String>,
 }
 
 /// Un tamaño de papel que ofrece el driver.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PaperForm {
+    /// Identificador del papel (`dmPaperSize`).
     pub id: u16,
+    /// Nombre que muestra el driver.
     pub name: String,
+    /// Ancho en mm.
     pub width_mm: f32,
+    /// Largo en mm.
     pub length_mm: f32,
 }
 
 /// Datos de la impresora tal como los reporta su driver.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PrinterInfo {
+    /// Nombre de la impresora.
     pub name: String,
+    /// Resolución (x, y).
     pub dpi: (i32, i32),
     /// Área imprimible en puntos (ancho, alto).
     pub printable_px: (i32, i32),
@@ -128,9 +150,13 @@ pub struct PrinterInfo {
     pub physical_px: (i32, i32),
     /// Margen no imprimible (izquierdo, superior) en puntos.
     pub offset_px: (i32, i32),
+    /// Papel configurado (`dmPaperSize`).
     pub paper_id: i16,
+    /// Ancho y largo del papel configurado, en mm.
     pub paper_mm: (f32, f32),
+    /// `dmDriverVersion` del DEVMODE.
     pub driver_version: u16,
+    /// Tamaños de papel que ofrece el driver.
     pub forms: Vec<PaperForm>,
 }
 
@@ -238,3 +264,8 @@ mod tests {
         assert_eq!(again, t);
     }
 }
+
+// Compila los ejemplos del README como doc-tests.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;

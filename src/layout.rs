@@ -19,26 +19,37 @@ const COL_GAP_MM: f32 = 1.0;
 /// Fuente ya resuelta a puntos del dispositivo.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FontKey {
+    /// Nombre de la fuente de Windows.
     pub face: String,
     /// Alto de la letra (em) en puntos del dispositivo.
     pub height_px: i32,
+    /// Negrita.
     pub bold: bool,
 }
 
 /// Una operación de dibujo. `y` es relativa al inicio de su bloque.
 #[derive(Debug, Clone, PartialEq)]
 pub enum DrawOp {
+    /// Una línea de texto. `y` es el borde superior de la línea.
     Text {
+        /// Posición horizontal en puntos.
         x: i32,
+        /// Posición vertical en puntos, relativa al bloque.
         y: i32,
+        /// Texto de la línea.
         text: String,
+        /// Fuente.
         font: FontKey,
     },
     /// Rectángulo negro relleno (módulos del QR).
     Rect {
+        /// Borde izquierdo en puntos.
         x: i32,
+        /// Borde superior en puntos, relativo al bloque.
         y: i32,
+        /// Ancho en puntos.
         w: i32,
+        /// Alto en puntos.
         h: i32,
     },
 }
@@ -46,20 +57,26 @@ pub enum DrawOp {
 /// Un bloque es la unidad que nunca se parte entre páginas: una línea de texto, una fila o un QR.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Block {
+    /// Posición vertical del bloque en el ticket, en puntos.
     pub top: i32,
+    /// Alto del bloque en puntos.
     pub height: i32,
+    /// Lo que se dibuja dentro del bloque.
     pub ops: Vec<DrawOp>,
 }
 
 /// El ticket maquetado.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Layout {
+    /// Resolución horizontal del dispositivo.
     pub dpi_x: i32,
+    /// Resolución vertical del dispositivo.
     pub dpi_y: i32,
     /// Ancho imprimible en puntos.
     pub width: i32,
     /// Alto total del contenido en puntos.
     pub height: i32,
+    /// Bloques en orden de arriba abajo.
     pub blocks: Vec<Block>,
     /// El documento pide corte al final.
     pub cut: bool,
@@ -112,6 +129,7 @@ pub struct WidthLimit<'a> {
 }
 
 impl<'a> WidthLimit<'a> {
+    /// Envuelve `inner` y limita su ancho a `max_width` puntos.
     pub fn new(inner: &'a mut dyn Measurer, max_width: i32) -> Self {
         let width = inner.printable_width().min(max_width).max(1);
         WidthLimit { inner, width }

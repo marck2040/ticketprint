@@ -2,11 +2,17 @@ use std::fmt;
 
 /// Errores del crate. Los mensajes están en español para poder mostrarlos tal cual al usuario.
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum Error {
     /// No existe una impresora con ese nombre.
     PrinterNotFound(String),
     /// Una llamada a Windows falló.
-    Win32 { call: &'static str, detail: String },
+    Win32 {
+        /// Función de Windows que falló.
+        call: &'static str,
+        /// Mensaje de Windows y código de error.
+        detail: String,
+    },
     /// El contenido del QR no cabe en un código QR.
     QrTooLong(usize),
     /// El ticket tiene algo que no se puede dibujar.
@@ -29,4 +35,5 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+/// Resultado de las funciones del crate.
 pub type Result<T> = std::result::Result<T, Error>;

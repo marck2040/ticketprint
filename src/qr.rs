@@ -15,6 +15,7 @@ pub struct QrMatrix {
 }
 
 impl QrMatrix {
+    /// Genera el QR. Falla con [`Error::QrTooLong`] si el contenido no cabe.
     pub fn encode(data: &str, ecc: Ecc) -> Result<Self> {
         let ecl = match ecc {
             Ecc::L => QrCodeEcc::Low,
@@ -38,6 +39,7 @@ impl QrMatrix {
         self.size
     }
 
+    /// `true` si el módulo `(x, y)` es negro.
     pub fn is_dark(&self, x: i32, y: i32) -> bool {
         self.dark[(y * self.size + x) as usize]
     }
